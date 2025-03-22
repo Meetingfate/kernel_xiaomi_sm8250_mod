@@ -1,0 +1,37 @@
+name: boot_Transplant
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库文件
+        uses: actions/checkout@main
+      - name: -准备环境
+        run: |
+          sudo timedatectl set-timezone Asia/Shanghai
+          sudo apt --fix-broken install
+          sudo apt update --fix-missing
+          sudo apt install build-essential git curl wget bison flex zip bc cpio libssl-dev ccache
+          mkdir proton-clang
+          cd proton-clang
+          wget https://github.com/kdrag0n/proton-clang/archive/refs/tags/20210522.zip
+          unzip 20210522.zip
+          sudo mv "$GITHUB_WORKSPACE"/proton-clang $HOME/
+          cd ..
+      - name: -编译内核
+        run: |
+          bash build.sh lmi
+          echo "ZIP_FILENAME=$ZIP_FILENAME" >> $GITHUB_ENV
+          echo 1 > "$GITHUB_WORKSPACE"/file.log
+      - name: -上传到Github Release
+        uses: ncipollo/release-action@main
+        with:
+          artifacts: "${{ github.workspace }}/${{ env.ZIP_FILENAME}}"
+          name: "k30p"
+          tag: "k30p"
+          bodyFile: "${{ github.workspace }}/file.log"
+          allowUpdates: true
+          artifactErrorsFailBuild: true
+          token: ${{ secrets.GITHUB_TOKEN }}
